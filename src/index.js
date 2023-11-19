@@ -7,7 +7,7 @@ import { WoltApiClient } from './clients/WoltApiClient.mjs';
 import { cleanupOrdersAsync } from './services/CleanupService.mjs';
 import { createOrderAndPrepareMessage } from './services/OrdersService.mjs';
 import { getListsAsync } from './services/ListsService.mjs';
-import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './configuration.mjs';
+import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
 
 const updateRefreshTokenAsync = async () => {
   const mainRepository = new MainRepository();

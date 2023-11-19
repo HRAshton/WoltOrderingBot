@@ -2,7 +2,7 @@
 /// <reference path="../typings/Types.js" />
 "use strict";
 
-import { REFRESH_TOKENS_INTERVAL_SECS } from "../configuration.mjs";
+import { REFRESH_TOKENS_INTERVAL_SECS } from "../lowLevelConfiguration.mjs";
 
 export class WoltApiClient {
     /** @type {string} */
