@@ -29,6 +29,10 @@ export async function getListsAsync(mainRepository) {
         const sortedAliases = [...uniqueItemAliases].sort();
         for (const itemAlias of sortedAliases) {
             const itemsWithSameAlias = itemsInPlace.filter(it => it.itemAlias === itemAlias);
+            if (!itemsWithSameAlias.length) {
+                continue;
+            }
+
             const joinedItems = itemsWithSameAlias.map(it => `'${it.fullName}'`).join(', ');
             itemsMessage += `\n- \`${itemsWithSameAlias[0].itemAlias}\` (${joinedItems})`;
         }
