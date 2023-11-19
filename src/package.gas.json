@@ -1,15 +1,18 @@
 {
   "name": "woltorderingbot",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Telegram bot that can be used to order food from Wolt.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HRAshton/WoltOrderingBot.git"
+  },
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "HRAshton",
+  "license": "GPL-3.0",
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
     "node-fetch": "^3.3.2",
