@@ -2,6 +2,7 @@
 /// <reference path="../typings/Types.js" />
 "use strict";
 
+import fetch from 'node-fetch';
 import { getLogger } from "../LogManager.mjs";
 import { REFRESH_TOKENS_INTERVAL_SECS } from "../lowLevelConfiguration.mjs";
 

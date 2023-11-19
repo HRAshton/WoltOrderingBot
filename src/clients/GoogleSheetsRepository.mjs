@@ -3,6 +3,7 @@
 /// <reference path="../typings/MainRepository.js" />
 "use strict";
 
+import fetch from 'node-fetch';
 import { getLogger } from '../LogManager.mjs';
 import { GAS_DB_ENDPOINT } from '../lowLevelConfiguration.mjs';
 
