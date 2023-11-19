@@ -19,7 +19,7 @@ export async function getListsAsync(mainRepository) {
     for (const placeId of placeIds) {
         const samePlaces = places.filter(it => it.id === placeId);
 
-        placesMessage += `\n- ${samePlaces[0].fullName} (${samePlaces.map(it => it.alias).join(', ')})`;
+        placesMessage += `\n- ${samePlaces[0].fullName} (${samePlaces.map(it => `\`${it.alias}\``).join(', ')})`;
 
         let itemsMessage = `Items of ${samePlaces[0].fullName} (\`${samePlaces[0].alias}\`):`
         const itemsInPlace = items.filter(it => it.placeId === placeId);
