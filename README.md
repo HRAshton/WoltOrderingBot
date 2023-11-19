@@ -15,12 +15,12 @@ It also can add some predefined orders to the order, so that you can order for e
 3. Create a Wolt account
 4. Choose a database to use (sqlite or google sheets 😁)
     1. If you want to use sqlite:
-        1. Run `npm install` with 'package.sqlite.json'
+        1. Run `npm install:sqlite`
         2. Run project with `npm run start`
         3. Stop the project with Ctrl+C
         4. Open the created database file and fill the database with the needed tables (see below)
     2. If you want to use google sheets:
-        1. Run `npm install` with 'package.gas.json'
+        1. Run `npm install:gas` (or just `npm install`)
         2. Create a google sheets document
         3. Create a Apps Script project and copy the code from folder "gas_database" to it
         4. Deploy the project as a web app

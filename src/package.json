@@ -9,6 +9,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "install:gas": "npm install",
+    "install:sqlite": "npm install --save sqlite3 sqlite",
     "start": "node index.js"
   },
   "author": "HRAshton",
