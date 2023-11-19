@@ -11,21 +11,21 @@ It also can add some predefined orders to the order, so that you can order for e
 ## Installation
 
 1. Clone the repository
-2. Install dependencies with `npm install`
-3. Create a Telegram bot with [BotFather](https://t.me/BotFather)
-4. Create a Wolt account
-5. Choose a database to use (sqlite or google sheets 😁)
-    a. If you want to use sqlite:
-        1. Add both "sqlite3" and "sqlite" to dependencies in package.json and run `npm install`
+2. Create a Telegram bot with [BotFather](https://t.me/BotFather)
+3. Create a Wolt account
+4. Choose a database to use (sqlite or google sheets 😁)
+    1. If you want to use sqlite:
+        1. Run `npm install` with 'package.sqlite.json'
         2. Run project with `npm run start`
         3. Stop the project with Ctrl+C
         4. Open the created database file and fill the database with the needed tables (see below)
-    b. If you want to use google sheets:
-        1. Create a google sheets document
-        2. Create a Apps Script project and copy the code from folder "gas_database" to it
-        3. Deploy the project as a web app
-        4. Copy the url of the web app and add it to the config file
-        5. Setup the sheets document as described below
+    2. If you want to use google sheets:
+        1. Run `npm install` with 'package.gas.json'
+        2. Create a google sheets document
+        3. Create a Apps Script project and copy the code from folder "gas_database" to it
+        4. Deploy the project as a web app
+        5. Copy the url of the web app and add it to the config file
+        6. Setup the sheets document as described below
 
 ## Setup
 
