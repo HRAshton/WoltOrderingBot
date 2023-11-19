@@ -12,24 +12,23 @@ const logger = getLogger('CleanupService');
  */
 export async function cleanupOrdersAsync(forced) {
     const mainRepository = new MainRepository();
-    const config = await mainRepository.getSettingsAsync();
+    const settings = await mainRepository.getSettingsAsync();
 
     const woltClient = new WoltApiClient(
-        config.woltRefreshToken,
+        settings.woltRefreshToken,
         mainRepository.setRefreshTokenAsync);
 
-    await _cleanupOrdersAsync(mainRepository, woltClient, forced);
+    await _cleanupOrdersAsync(mainRepository, woltClient, settings, forced);
 }
 
 /**
  * @param {MainRepository} mainRepository
  * @param {WoltApiClient} woltClient
+ * @param {Settings} settings
  * @param {boolean} forced
  */
-async function _cleanupOrdersAsync(mainRepository, woltClient, forced) {
-    const { ordersExpirationMinutes } = await mainRepository.getSettingsAsync();
-
-    const maxAllowedDate = new Date(new Date().getTime() + ordersExpirationMinutes * 60 * 1000);
+async function _cleanupOrdersAsync(mainRepository, woltClient, settings, forced) {
+    const maxAllowedDate = new Date(new Date().getTime() + settings.ordersExpirationMinutes * 60 * 1000);
     const allOrders = await mainRepository.getOrdersAsync();
     const outdatedOrders = allOrders.filter(order => order.createdAt < maxAllowedDate.toISOString() || forced);
     logger.verbose('Found %s outdated orders: %s.', outdatedOrders.length, JSON.stringify(outdatedOrders));

@@ -5,7 +5,7 @@
 import { getLogger } from "../LogManager.mjs";
 import { REFRESH_TOKENS_INTERVAL_SECS } from "../lowLevelConfiguration.mjs";
 
-const logger = getLogger('MainRepository');
+const logger = getLogger('WoltApiClient');
 
 export class WoltApiClient {
     /** @type {string} */
@@ -105,7 +105,7 @@ export class WoltApiClient {
         try {
             await this._sendRequestAsync('POST', `/group_order/${orderId}/invite/${userId}`, null);
         } catch (e) {
-            logger.error(e);
+            logger.error('Error while inviting user %s to order %s: %o.', userId, orderId, e);
         }
 
         logger.info('Invited user %s to order %s.', userId, orderId);
@@ -120,11 +120,10 @@ export class WoltApiClient {
 
         try {
             await this._sendRequestAsync('DELETE', `/group_order/${orderId}`, null);
+            logger.info('Deleted order %s.', orderId);
         } catch (e) {
-            logger.error(e);
+            logger.info('Unable to delete order %s: %o.', orderId, e);
         }
-
-        logger.info('Deleted order %s.', orderId);
     }
 
     /** @returns {Promise<void>} */
@@ -156,17 +155,17 @@ export class WoltApiClient {
 
         const url = `https://restaurant-api.wolt.com/v1${relativeUrl}`;
         logger.debug('Sending request to %s.', url);
-        logger.debug(options);
+        logger.debug('Body: %o.', options);
 
         let textResponse;
         let result;
         try {
             const response = await fetch(url, options);
             textResponse = await response.text();
-            result = JSON.parse(textResponse || '{}');
+            result = JSON.parse(textResponse);
         } catch (e) {
-            logger.error('Error while sending request: %s.', e);
-            logger.error(textResponse);
+            logger.warn('Error while sending request: %s.', e);
+            logger.warn(textResponse);
             throw e;
         }
 
@@ -209,7 +208,9 @@ export class WoltApiClient {
         if (result['refresh_token'] && result['refresh_token'] !== this._refreshToken) {
             logger.verbose('Setting new refresh token: %s...', result['refresh_token'].slice(0, 10));
             this._refreshToken = result['refresh_token'];
-            await this._setRefreshTokenCallback(result['refresh_token']);
+
+            // No need to await here.
+            this._setRefreshTokenCallback(result['refresh_token']);
         }
 
         this._accessToken = result['access_token'];

@@ -14,9 +14,11 @@ const logger = getLogger('OrdersService');
  * @returns {Promise<{message: string, successful: boolean}>}
  */
 export async function createOrderAndPrepareMessage(mainRepository, users, text) {
-    const settings = await mainRepository.getSettingsAsync();
-    const allPlaces = await mainRepository.getPlacesAsync();
-    const allItems = await mainRepository.getItemsAsync();
+    const [settings, allPlaces, allItems] = await Promise.all([
+        mainRepository.getSettingsAsync(),
+        mainRepository.getPlacesAsync(),
+        mainRepository.getItemsAsync(),
+    ]);
 
     const tokens = text.split(' ');
 
@@ -40,7 +42,8 @@ export async function createOrderAndPrepareMessage(mainRepository, users, text) 
         JSON.parse(settings.deliveryInfoStr));
 
     logger.info('Registering order.');
-    await mainRepository.registerOrderAsync(order.id, new Date().toISOString());
+    // No need to await here.
+    mainRepository.registerOrderAsync(order.id, new Date().toISOString());
 
     logger.info('Adding items.');
     const preparedItems = items.map(it => ({ itemId: it.item.itemId, count: it.count }));

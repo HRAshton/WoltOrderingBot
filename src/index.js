@@ -87,7 +87,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
         bot.sendMessage(user.telegramId, message, sharedSendOptions);
       }
     } catch (e) {
-      logger.error(e);
+      logger.error('%o', e);
       bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
     }
   });
@@ -104,7 +104,7 @@ const runBotAsync = async () => {
 
     logger.info('Bot is running.');
   } catch (e) {
-    logger.error(e);
+    logger.error('%o', e);
     logger.warn('Bot failed to start. Retrying in 5 seconds.');
     setTimeout(runBotAsync, 5000);
   }

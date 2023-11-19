@@ -9,8 +9,10 @@ import { MainRepository } from "../clients/MainRepository.mjs";
  * @returns {Promise<string[]>}
  */
 export async function getListsAsync(mainRepository) {
-    const places = await mainRepository.getPlacesAsync();
-    const items = await mainRepository.getItemsAsync();
+    const [places, items] = await Promise.all([
+        mainRepository.getPlacesAsync(),
+        mainRepository.getItemsAsync(),
+    ]);
 
     let placesMessage = `Places (${places.length}):`;
     const itemsMessages = [];
