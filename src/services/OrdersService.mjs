@@ -1,14 +1,17 @@
 // @ts-check
 "use strict";
 
+import { getLogger } from '../LogManager.mjs';
 import { MainRepository } from '../clients/MainRepository.mjs';
 import { WoltApiClient } from '../clients/WoltApiClient.mjs';
+
+const logger = getLogger('OrdersService');
 
 /**
  * @param {MainRepository} mainRepository
  * @param {User[]} users
  * @param {string} text
- * @returns {Promise<string>}
+ * @returns {Promise<{message: string, successful: boolean}>}
  */
 export async function createOrderAndPrepareMessage(mainRepository, users, text) {
     const settings = await mainRepository.getSettingsAsync();
@@ -18,9 +21,10 @@ export async function createOrderAndPrepareMessage(mainRepository, users, text) 
     const tokens = text.split(' ');
 
     const { place, errorMessage } = _findPlace(tokens, allPlaces);
-    if (!!errorMessage || !place) {
-        console.error(errorMessage);
-        return errorMessage || 'Unknown error.';
+    if (!place) {
+        if (!errorMessage) throw new Error('No error message.');
+        logger.warn(errorMessage);
+        return { message: errorMessage, successful: false };
     }
 
     const items = _findItems(tokens, place, allItems);
@@ -29,20 +33,20 @@ export async function createOrderAndPrepareMessage(mainRepository, users, text) 
         settings.woltRefreshToken,
         mainRepository.setRefreshTokenAsync);
 
-    console.log('Creating order.');
+    logger.info('Creating order.');
     const order = await woltClient.createOrderAsync(
         place.alias,
         place.id,
         JSON.parse(settings.deliveryInfoStr));
 
-    console.log('Registering order.');
+    logger.info('Registering order.');
     await mainRepository.registerOrderAsync(order.id, new Date().toISOString());
 
-    console.log('Adding items.');
+    logger.info('Adding items.');
     const preparedItems = items.map(it => ({ itemId: it.item.itemId, count: it.count }));
     const added = await woltClient.addItemAsync(order.id, preparedItems);
 
-    console.log('Inviting users.');
+    logger.info('Inviting users.');
     for (const user of users.filter(user => !!user.woltId)) {
         await woltClient.inviteUserAsync(order.id, user.woltId);
     }
@@ -59,8 +63,8 @@ ${itemsDescription}
 
 The order will be deleted in ${settings.ordersExpirationMinutes} minutes.
   `;
-    console.log('Order has been created: %s.', message);
-    return message;
+    logger.info('Order has been created: %s.', message);
+    return { message, successful: true };
 }
 
 /**
@@ -80,7 +84,7 @@ function _findPlace(tokens, allPlaces) {
         return { errorMessage: 'Too many places found.' };
     }
 
-    console.log('Place found: %s.', places[0]);
+    logger.debug('Place found: %s.', places[0]);
     return { place: places[0] };
 }
 
@@ -108,7 +112,7 @@ function _findItems(tokens, place, allItems) {
         items.push({ item, count });
     }
 
-    console.log('%s items found: %s.', items.length, items);
+    logger.debug('%s items found: %s.', items.length, items);
     return items;
 }
 

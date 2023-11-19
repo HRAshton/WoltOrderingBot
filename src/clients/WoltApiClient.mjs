@@ -2,7 +2,10 @@
 /// <reference path="../typings/Types.js" />
 "use strict";
 
+import { getLogger } from "../LogManager.mjs";
 import { REFRESH_TOKENS_INTERVAL_SECS } from "../lowLevelConfiguration.mjs";
+
+const logger = getLogger('MainRepository');
 
 export class WoltApiClient {
     /** @type {string} */
@@ -35,6 +38,7 @@ export class WoltApiClient {
         this.inviteUserAsync = this.inviteUserAsync.bind(this);
         this.deleteOrderAsync = this.deleteOrderAsync.bind(this);
         this.updateRefreshTokenAsync = this.updateRefreshTokenAsync.bind(this);
+        logger.verbose('WoltApiClient created.');
     }
 
     /**
@@ -44,7 +48,7 @@ export class WoltApiClient {
      * @returns {Promise<DetailedOrder>}
      */
     async createOrderAsync(orderName, placeId, delivaryInfo) {
-        console.log('Creating order %s.', orderName);
+        logger.debug('Creating order %s.', orderName);
 
         const payload = {
             name: orderName,
@@ -56,7 +60,7 @@ export class WoltApiClient {
 
         const order = await this._sendRequestAsync('POST', '/group_order/', payload);
 
-        console.log('Created order %s with id=%s', orderName, order.id);
+        logger.info('Created order %s with id=%s', orderName, order.id);
         return order;
     }
 
@@ -66,7 +70,7 @@ export class WoltApiClient {
      * @returns {Promise<boolean>}
      */
     async addItemAsync(orderId, items) {
-        console.log('Adding items %s to order %s.', JSON.stringify(items), orderId);
+        logger.verbose('Adding items %s to order %s.', JSON.stringify(items), orderId);
 
         try {
             const payload = {
@@ -82,11 +86,11 @@ export class WoltApiClient {
 
             await this._sendRequestAsync('PATCH', `/group_order/${orderId}/participants/me/basket`, payload);
         } catch (e) {
-            console.error(e);
+            logger.warn(e);
             return false;
         }
 
-        console.log('Added items %s to order %s.', JSON.stringify(items), orderId);
+        logger.info('Added items %o to order %s.', JSON.stringify(items), orderId);
         return true;
     }
 
@@ -96,15 +100,15 @@ export class WoltApiClient {
      * @returns {Promise<void>}
      */
     async inviteUserAsync(orderId, userId) {
-        console.log('Inviting user %s to order %s.', userId, orderId);
+        logger.verbose('Inviting user %s to order %s.', userId, orderId);
 
         try {
             await this._sendRequestAsync('POST', `/group_order/${orderId}/invite/${userId}`, null);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
         }
 
-        console.log('Invited user %s to order %s.', userId, orderId);
+        logger.info('Invited user %s to order %s.', userId, orderId);
     }
 
     /**
@@ -112,23 +116,23 @@ export class WoltApiClient {
      * @returns {Promise<void>}
      */
     async deleteOrderAsync(orderId) {
-        console.log('Deleting order %s.', orderId);
+        logger.verbose('Deleting order %s.', orderId);
 
         try {
             await this._sendRequestAsync('DELETE', `/group_order/${orderId}`, null);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
         }
 
-        console.log('Deleted order %s.', orderId);
+        logger.info('Deleted order %s.', orderId);
     }
 
     /** @returns {Promise<void>} */
     async updateRefreshTokenAsync() {
-        console.log('Updating refresh token.');
+        logger.verbose('Updating refresh token.');
         this._accessToken = null;
         await this._authorizeAsync();
-        console.log('Updated refresh token.');
+        logger.info('Updated refresh token.');
     }
 
     /**
@@ -150,18 +154,19 @@ export class WoltApiClient {
             body: JSON.stringify(payload),
         }
 
-        console.log(JSON.stringify(options));
-        console.log('https://restaurant-api.wolt.com/v1' + relativeUrl);
+        const url = `https://restaurant-api.wolt.com/v1${relativeUrl}`;
+        logger.debug('Sending request to %s.', url);
+        logger.debug(options);
 
         let textResponse;
         let result;
         try {
-            const response = await fetch('https://restaurant-api.wolt.com/v1' + relativeUrl, options);
+            const response = await fetch(url, options);
             textResponse = await response.text();
             result = JSON.parse(textResponse || '{}');
         } catch (e) {
-            console.error('Error while sending request: %s.', e);
-            console.error(textResponse);
+            logger.error('Error while sending request: %s.', e);
+            logger.error(textResponse);
             throw e;
         }
 
@@ -191,20 +196,25 @@ export class WoltApiClient {
             }),
         }
 
-        const response = await fetch('https://authentication.wolt.com/v1/wauth2/access_token', options);
+        const url = 'https://authentication.wolt.com/v1/wauth2/access_token';
+        logger.debug('Sending request to %s.', url);
+        logger.debug('%o', options);
+
+        const response = await fetch(url, options);
         const result = await response.json();
         if (result['error_code']) {
             throw Error(`Error while authorizing: ${result['error_code']}: ${result['msg']}`);
         }
 
         if (result['refresh_token'] && result['refresh_token'] !== this._refreshToken) {
-            console.log('Setting new refresh token: %s.', result['refresh_token'].slice(0, 10));
+            logger.verbose('Setting new refresh token: %s...', result['refresh_token'].slice(0, 10));
             this._refreshToken = result['refresh_token'];
             await this._setRefreshTokenCallback(result['refresh_token']);
         }
 
-        console.log('Setting new access token: %s.', result['access_token'].slice(0, 10));
         this._accessToken = result['access_token'];
         this._nextAccessTokenUpdate = new Date(new Date().getTime() + REFRESH_TOKENS_INTERVAL_SECS * 1000);
+        logger.verbose('Access token updated: %s...', this._accessToken?.slice(0, 10));
+        logger.verbose('Next access token update: %s.', this._nextAccessTokenUpdate.toISOString());
     }
 }

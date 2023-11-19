@@ -4,6 +4,9 @@
 
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
+import { getLogger } from '../LogManager.mjs';
+
+const logger = getLogger('MainRepository');
 
 export class MainRepository {
   DATABASE_PATH = 'database.db';
@@ -16,37 +19,53 @@ export class MainRepository {
     this.setRefreshTokenAsync = this.setRefreshTokenAsync.bind(this);
     this.registerOrderToDeleteAsync = this.registerOrderAsync.bind(this);
     this.deleteOrderAsync = this.deleteOrderAsync.bind(this);
+    logger.verbose('MainRepository created.');
   }
 
   /** @returns {Promise<Settings>} */
   async getSettingsAsync() {
     await this._initDatabaseAsync();
     const settings = await this._db.all('SELECT * FROM Settings');
-    return Object.fromEntries(settings.map(setting => [setting.name, setting.value]));
+    const result = Object.fromEntries(settings.map(setting => [setting.name, setting.value]));
+
+    logger.verbose('Returning settings: %o.', result);
+    return result;
   }
 
   /** @returns {Promise<Place[]>} */
   async getPlacesAsync() {
     await this._initDatabaseAsync();
-    return await this._db.all('SELECT * FROM Places');
+    const result = await this._db.all('SELECT * FROM Places');
+
+    logger.verbose('Returning places: %o.', result);
+    return result;
   }
 
   /** @returns {Promise<Item[]>} */
   async getItemsAsync() {
     await this._initDatabaseAsync();
-    return await this._db.all('SELECT * FROM Items');
+    const result = await this._db.all('SELECT * FROM Items');
+
+    logger.verbose('Returning items: %o.', result);
+    return result;
   }
 
   /** @returns {Promise<User[]>} */
   async getUsersAsync() {
     await this._initDatabaseAsync();
-    return await this._db.all('SELECT * FROM Users');
+    const result = await this._db.all('SELECT * FROM Users');
+
+    logger.verbose('Returning users: %o.', result);
+    return result;
   }
 
   /** @returns {Promise<RegisteredOrder[]>} */
   async getOrdersAsync() {
     await this._initDatabaseAsync();
-    return await this._db.all('SELECT * FROM OrdersToDelete');
+    const result = await this._db.all('SELECT * FROM OrdersToDelete');
+
+    logger.verbose('Returning orders: %o.', result);
+    return result;
   }
 
   /**
@@ -56,6 +75,7 @@ export class MainRepository {
   async setRefreshTokenAsync(refreshToken) {
     await this._initDatabaseAsync();
     await this._db.run('UPDATE Settings SET value = ? WHERE name = ?', [refreshToken, 'woltRefreshToken']);
+    logger.verbose('Refresh token updated.');
   }
 
   /**
@@ -66,6 +86,7 @@ export class MainRepository {
   async registerOrderAsync(orderId, createdAt) {
     await this._initDatabaseAsync();
     await this._db.run('INSERT INTO OrdersToDelete (orderId, createdAt) VALUES (?, ?)', [orderId, createdAt]);
+    logger.verbose('Order %s registered.', orderId);
   }
 
   /**
@@ -75,6 +96,7 @@ export class MainRepository {
   async deleteOrderAsync(orderId) {
     await this._initDatabaseAsync();
     await this._db.run('DELETE FROM OrdersToDelete WHERE orderId = ?', [orderId]);
+    logger.verbose('Order %s deleted.', orderId);
   }
 
   /** @private */
@@ -87,6 +109,8 @@ export class MainRepository {
       filename: this.DATABASE_PATH,
       driver: sqlite3.Database
     });
+
+    this._db.on('trace', (/** @type {string} */ sql) => logger.debug(sql));
 
     await this._createDatabaseAsync();
   }
@@ -133,5 +157,7 @@ export class MainRepository {
                ('deliveryInfoStr', 'COPY delivery_info STRING FROM A WOLT REQUEST HERE'),
                ('telegramToken', 'COPY TELEGRAM TOKEN HERE'),
                ('ordersExpirationMinutes', '15')`);
+    
+    logger.verbose('Migration complete.');
   }
 }

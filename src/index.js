@@ -8,6 +8,9 @@ import { cleanupOrdersAsync } from './services/CleanupService.mjs';
 import { createOrderAndPrepareMessage } from './services/OrdersService.mjs';
 import { getListsAsync } from './services/ListsService.mjs';
 import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
+import { getLogger } from './LogManager.mjs';
+
+const logger = getLogger('index.js');
 
 const updateRefreshTokenAsync = async () => {
   const mainRepository = new MainRepository();
@@ -28,11 +31,11 @@ const updateRefreshTokenAsync = async () => {
 const setupBot = (bot, allowedUsers, mainRepository) => {
   bot.onText(/^\/lists$/, async (msg, _) => {
     if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
-      console.warn('User is not allowed: %d.', msg.chat.id);
+      logger.warn('User is not allowed: %d.', msg.chat.id);
       return;
     }
 
-    console.log('User %d requested lists.', msg.chat.id);
+    logger.info('User %d requested lists.', msg.chat.id);
     const responses = await getListsAsync(mainRepository);
 
     for (const response of responses) {
@@ -43,7 +46,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
   bot.onText(/^\/cancel$/, async (msg, _) => {
     try {
       if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
-        console.warn('User is not allowed: %d.', msg.chat.id);
+        logger.warn('User is not allowed: %d.', msg.chat.id);
         return;
       }
 
@@ -57,28 +60,31 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
 
       bot.sendMessage(msg.chat.id, `${orders.length} orders cancelled.`);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       bot.sendMessage(msg.chat.id, 'Unknown error: ' + e);
     }
   });
 
-  bot.onText(/^[^\/].+$/, async (msg, _) => {
+  bot.onText(/^[^\/]+$/, async (msg, _) => {
     try {
       if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
-        console.warn('User is not allowed: %d.', msg.chat.id);
+        logger.warn('User is not allowed: %d.', msg.chat.id);
         return;
       }
 
-      const response = await createOrderAndPrepareMessage(
+      const { message, successful } = await createOrderAndPrepareMessage(
         mainRepository,
         allowedUsers,
         msg.text?.toLowerCase() || '');
 
-      for (const user of allowedUsers) {
-        bot.sendMessage(user.telegramId, response, { disable_web_page_preview: true });
+      const usersToNotify = successful
+        ? allowedUsers
+        : allowedUsers.filter(user => user.telegramId === msg.chat.id);
+      for (const user of usersToNotify) {
+        bot.sendMessage(user.telegramId, message, { disable_web_page_preview: true });
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       bot.sendMessage(msg.chat.id, 'Unknown error: ' + e);
     }
   });
@@ -93,10 +99,10 @@ const runBotAsync = async () => {
     const bot = new TelegramBot(settings.telegramToken, { polling: true });
     setupBot(bot, allowedUsers, mainRepository);
 
-    console.log('Bot is running.');
+    logger.info('Bot is running.');
   } catch (e) {
-    console.error(e);
-    console.warn('Bot failed to start. Retrying in 5 seconds.');
+    logger.error(e);
+    logger.warn('Bot failed to start. Retrying in 5 seconds.');
     setTimeout(runBotAsync, 5000);
   }
 };
