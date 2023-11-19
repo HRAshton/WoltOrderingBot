@@ -202,6 +202,10 @@ export class WoltApiClient {
 
         const response = await fetch(url, options);
         const result = await response.json();
+        if (!result) {
+            throw Error('Error while authorizing: no result.');
+        }
+
         if (result['error_code']) {
             throw Error(`Error while authorizing: ${result['error_code']}: ${result['msg']}`);
         }

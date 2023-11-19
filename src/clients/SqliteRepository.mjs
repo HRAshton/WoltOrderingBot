@@ -5,7 +5,7 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { getLogger } from '../LogManager.mjs';
-import { DATABASE_PATH } from '../lowLevelConfiguration.mjs';
+import { SQLITE_DATABASE_PATH } from '../lowLevelConfiguration.mjs';
 
 const logger = getLogger('SqliteRepository');
 
@@ -105,7 +105,7 @@ export class SqliteRepository {
     }
 
     this._db = await open({
-      filename: DATABASE_PATH,
+      filename: SQLITE_DATABASE_PATH,
       driver: sqlite3.Database
     });
 
