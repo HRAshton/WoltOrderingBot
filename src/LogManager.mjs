@@ -3,6 +3,7 @@
 
 import winston from "winston";
 
+const logPrefix = new Date().toISOString().replace(/[\-\:]/g, '_').replace(/\..+/g, '');
 
 /** @type {winston.LoggerOptions} */
 const logConfiguration = {
@@ -14,8 +15,10 @@ const logConfiguration = {
         }),
         new winston.transports.File({
             level: 'debug',
-            filename: 'logs/example.log',
+            dirname: './logs',
+            filename: `${logPrefix}.log`,
             handleExceptions: true,
+            maxsize: 1024 * 1024 * 4, // 4MB
         })
     ],
     format: winston.format.combine(
