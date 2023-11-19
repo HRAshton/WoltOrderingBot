@@ -7,6 +7,7 @@ import { WoltApiClient } from './clients/WoltApiClient.mjs';
 import { cleanupOrdersAsync } from './services/CleanupService.mjs';
 import { createOrderAndPrepareMessage } from './services/OrdersService.mjs';
 import { getListsAsync } from './services/ListsService.mjs';
+import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './configuration.mjs';
 
 const updateRefreshTokenAsync = async () => {
   const mainRepository = new MainRepository();
@@ -15,16 +16,16 @@ const updateRefreshTokenAsync = async () => {
   const woltClient = new WoltApiClient(
     config.woltRefreshToken,
     mainRepository.setRefreshTokenAsync);
-  const res = await woltClient.updateRefreshTokenAsync();
+  await woltClient.updateRefreshTokenAsync();
 };
 
-const runBotAsync = async () => {
-  const mainRepository = new MainRepository();
-  const settings = await mainRepository.getSettingsAsync();
-  const allowedUsers = await mainRepository.getUsersAsync();
-
-  const bot = new TelegramBot(settings.telegramToken, { polling: true });
-
+/**
+ * @param {TelegramBot} bot
+ * @param {User[]} allowedUsers
+ * @param {MainRepository} mainRepository
+ * @returns {void}
+ */
+const setupBot = (bot, allowedUsers, mainRepository) => {
   bot.onText(/^\/lists$/, async (msg, _) => {
     if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
       console.warn('User is not allowed: %d.', msg.chat.id);
@@ -73,8 +74,7 @@ const runBotAsync = async () => {
         allowedUsers,
         msg.text?.toLowerCase() || '');
 
-      // TODO: send to all users
-      for (const user of allowedUsers.filter(x => x.telegramId === msg.chat.id)) {
+      for (const user of allowedUsers) {
         bot.sendMessage(user.telegramId, response, { disable_web_page_preview: true });
       }
     } catch (e) {
@@ -82,10 +82,25 @@ const runBotAsync = async () => {
       bot.sendMessage(msg.chat.id, 'Unknown error: ' + e);
     }
   });
+}
 
-  console.log('Bot is running.');
+const runBotAsync = async () => {
+  try {
+    const mainRepository = new MainRepository();
+    const settings = await mainRepository.getSettingsAsync();
+    const allowedUsers = await mainRepository.getUsersAsync();
+
+    const bot = new TelegramBot(settings.telegramToken, { polling: true });
+    setupBot(bot, allowedUsers, mainRepository);
+
+    console.log('Bot is running.');
+  } catch (e) {
+    console.error(e);
+    console.warn('Bot failed to start. Retrying in 5 seconds.');
+    setTimeout(runBotAsync, 5000);
+  }
 };
 
-setInterval(updateRefreshTokenAsync, 1000 * 60 * 30);
-setInterval(cleanupOrdersAsync, 1000 * 60 * 15);
+setInterval(updateRefreshTokenAsync, REFRESH_TOKENS_INTERVAL_SECS);
+setInterval(cleanupOrdersAsync, ORDERS_CLEANUP_INTERVAL_SECS);
 await runBotAsync();

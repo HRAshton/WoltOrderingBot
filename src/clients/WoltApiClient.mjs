@@ -2,6 +2,8 @@
 /// <reference path="../typings/Types.js" />
 "use strict";
 
+import { REFRESH_TOKENS_INTERVAL_SECS } from "../configuration.mjs";
+
 export class WoltApiClient {
     /** @type {string} */
     _refreshToken;
@@ -9,8 +11,11 @@ export class WoltApiClient {
     /** @type {(refreshToken: string) => Promise<void>} */
     _setRefreshTokenCallback;
 
-    /** @type {string} */
+    /** @type {string | null} */
     _accessToken;
+
+    /** @type {Date | null} */
+    _nextAccessTokenUpdate;
 
     /**
      * @param {string} refreshToken
@@ -19,7 +24,7 @@ export class WoltApiClient {
     constructor(refreshToken, setRefreshTokenCallback) {
         this._refreshToken = refreshToken;
         this._setRefreshTokenCallback = setRefreshTokenCallback;
-        this.accessToken = null;
+        this._accessTokenLastUpdated = null;
 
         if (!setRefreshTokenCallback) {
             throw Error('setRefreshTokenCallback must be set.');
@@ -121,7 +126,8 @@ export class WoltApiClient {
     /** @returns {Promise<void>} */
     async updateRefreshTokenAsync() {
         console.log('Updating refresh token.');
-        await this._authorizeAsync(true);
+        this._accessToken = null;
+        await this._authorizeAsync();
         console.log('Updated refresh token.');
     }
 
@@ -133,7 +139,7 @@ export class WoltApiClient {
      * @private
      */
     async _sendRequestAsync(httpMethod, relativeUrl, payload) {
-        await this._authorizeAsync(false);
+        await this._authorizeAsync();
 
         const options = {
             method: httpMethod,
@@ -167,11 +173,10 @@ export class WoltApiClient {
     }
 
     /**
-     * @param {boolean} force
      * @returns {Promise<void>}
      * */
-    async _authorizeAsync(force) {
-        if (this._accessToken && !force) {
+    async _authorizeAsync() {
+        if (this._accessToken && this._nextAccessTokenUpdate && new Date() < this._nextAccessTokenUpdate) {
             return;
         }
 
@@ -200,5 +205,6 @@ export class WoltApiClient {
 
         console.log('Setting new access token: %s.', result['access_token'].slice(0, 10));
         this._accessToken = result['access_token'];
+        this._nextAccessTokenUpdate = new Date(new Date().getTime() + REFRESH_TOKENS_INTERVAL_SECS * 1000);
     }
 }
