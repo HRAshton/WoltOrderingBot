@@ -126,5 +126,12 @@ export class MainRepository {
         orderId TEXT PRIMARY KEY,
         createdAt TEXT
       )`);
+
+    await this._db.exec(`
+      INSERT OR IGNORE INTO Settings (name, value)
+        VALUES ('woltRefreshToken', 'COPY _wrtoken FROM COOKIE HERE'),
+               ('deliveryInfoStr', 'COPY delivery_info STRING FROM A WOLT REQUEST HERE'),
+               ('telegramToken', 'COPY TELEGRAM TOKEN HERE'),
+               ('ordersExpirationMinutes', '15')`);
   }
 }
