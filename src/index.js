@@ -101,6 +101,6 @@ const runBotAsync = async () => {
   }
 };
 
-setInterval(updateRefreshTokenAsync, REFRESH_TOKENS_INTERVAL_SECS);
-setInterval(cleanupOrdersAsync, ORDERS_CLEANUP_INTERVAL_SECS);
+setInterval(updateRefreshTokenAsync, REFRESH_TOKENS_INTERVAL_SECS * 1000);
+setInterval(cleanupOrdersAsync, ORDERS_CLEANUP_INTERVAL_SECS * 1000);
 await runBotAsync();

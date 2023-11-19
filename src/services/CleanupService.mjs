@@ -33,8 +33,8 @@ async function _cleanupOrdersAsync(mainRepository, woltClient, forced) {
 
     for (const order of outdatedOrders) {
         console.log('Deleting order %s.', JSON.stringify(order));
-        await mainRepository.deleteOrderAsync(order.orderId);
         await woltClient.deleteOrderAsync(order.orderId);
+        await mainRepository.deleteOrderAsync(order.orderId);
     }
 
     console.log('Cleanup complete.');
