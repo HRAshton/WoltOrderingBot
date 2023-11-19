@@ -12,7 +12,10 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\src\\index.js",
-            "outputCapture": "std"
+            "outputCapture": "std",
+            "env": {
+                "GAS_DB_ENDPOINT": "https://script.google.com/macros/s/(really long id here)/exec"
+            }
         }
     ]
 }

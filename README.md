@@ -105,6 +105,8 @@ No need to fill this table manually.
 
 #### Google Sheets
 
+To use google sheets as a database you need to pass the url of the web app to the config file or to the environment variable `GAS_DB_ENDPOINT`.
+
 The database is a google sheets document. It must have the following sheets:
 
 ##### Config
