@@ -21,12 +21,14 @@ export async function getListsAsync(mainRepository) {
 
         placesMessage += `\n- ${samePlaces[0].fullName} (${samePlaces.map(it => it.alias).join(', ')})`;
 
-        let itemsMessage = `Items of ${samePlaces[0].fullName}:`
+        let itemsMessage = `Items of ${samePlaces[0].fullName} (\`${samePlaces[0].alias}\`):`
         const itemsInPlace = items.filter(it => it.placeId === placeId);
-        const itemIds = new Set(itemsInPlace.map(it => it.itemId));
-        for (const itemId of itemIds) {
-            const sameItems = itemsInPlace.filter(it => it.itemId === itemId);
-            itemsMessage += `\n- ${sameItems[0].fullName} (${sameItems.map(it => it.itemAlias).join(', ')})`;
+        const uniqueItemAliases = new Set(itemsInPlace.map(it => it.itemAlias));
+        const sortedAliases = [...uniqueItemAliases].sort();
+        for (const itemAlias of sortedAliases) {
+            const itemsWithSameAlias = itemsInPlace.filter(it => it.itemAlias === itemAlias);
+            const joinedItems = itemsWithSameAlias.map(it => `'${it.fullName}'`).join(', ');
+            itemsMessage += `\n- \`${itemsWithSameAlias[0].itemAlias}\` (${joinedItems})`;
         }
 
         itemsMessages.push(itemsMessage);

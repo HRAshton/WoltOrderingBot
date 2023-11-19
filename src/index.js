@@ -29,6 +29,9 @@ const updateRefreshTokenAsync = async () => {
  * @returns {void}
  */
 const setupBot = (bot, allowedUsers, mainRepository) => {
+  /** @type {import('node-telegram-bot-api').SendMessageOptions} */
+  const sharedSendOptions = { disable_web_page_preview: true, parse_mode: 'Markdown' };
+
   bot.onText(/^\/lists$/, async (msg, _) => {
     if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
       logger.warn('User is not allowed: %d.', msg.chat.id);
@@ -39,7 +42,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     const responses = await getListsAsync(mainRepository);
 
     for (const response of responses) {
-      bot.sendMessage(msg.chat.id, response);
+      bot.sendMessage(msg.chat.id, response, sharedSendOptions);
     }
   });
 
@@ -52,7 +55,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
 
       const orders = await mainRepository.getOrdersAsync();
       if (!orders) {
-        bot.sendMessage(msg.chat.id, 'No orders found.');
+        bot.sendMessage(msg.chat.id, 'No orders found.', sharedSendOptions);
         return;
       }
 
@@ -61,7 +64,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
       bot.sendMessage(msg.chat.id, `${orders.length} orders cancelled.`);
     } catch (e) {
       logger.error(e);
-      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e);
+      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
     }
   });
 
@@ -81,11 +84,11 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
         ? allowedUsers
         : allowedUsers.filter(user => user.telegramId === msg.chat.id);
       for (const user of usersToNotify) {
-        bot.sendMessage(user.telegramId, message, { disable_web_page_preview: true });
+        bot.sendMessage(user.telegramId, message, sharedSendOptions);
       }
     } catch (e) {
       logger.error(e);
-      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e);
+      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
     }
   });
 }
