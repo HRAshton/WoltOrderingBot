@@ -106,7 +106,10 @@ export class WoltApiClient {
         try {
             await this._sendRequestAsync('POST', `/group_order/${orderId}/invite/${userId}`, null);
         } catch (e) {
-            logger.error('Error while inviting user %s to order %s: %o.', userId, orderId, e);
+            if (e.message !== 'Unexpected end of JSON input') {
+                // The request returns 204 No Content, so we get an error here.
+                logger.error('Error while inviting user %s to order %s: %o.', userId, orderId, e);
+            }
         }
 
         logger.info('Invited user %s to order %s.', userId, orderId);
