@@ -9,6 +9,7 @@ import { createOrderAndPrepareMessage } from './services/OrdersService.mjs';
 import { getListsAsync } from './services/ListsService.mjs';
 import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
 import { getLogger } from './LogManager.mjs';
+import { searchItemsEverywhereAsync } from './services/SearchService.mjs';
 
 const logger = getLogger('index.js');
 
@@ -89,6 +90,31 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     } catch (e) {
       logger.error('%o', e);
       bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
+    }
+  });
+
+  bot.onText(/^\/search(.*)$/, async (msg, match) => {
+    const searchQuery = (match && match[1])?.trim();
+    logger.info('User %d requested search for %s.', msg.chat.id,);
+
+    if (!searchQuery || searchQuery.length < 3) {
+      logger.warn('Request for search with invalid query: %s.', searchQuery);
+      bot.sendMessage(msg.chat.id, 'Please specify a search query.', sharedSendOptions);
+      return;
+    }
+
+    const messageLines = await searchItemsEverywhereAsync(mainRepository, searchQuery);
+    const messages = [];
+    for (const line of messageLines) {
+      if (messages.length && messages[messages.length - 1].length + line.length < 9000) {
+        messages[messages.length - 1] += '\n' + line;
+      } else {
+        messages.push(line);
+      }
+    }
+
+    for (const message of messages) {
+      await bot.sendMessage(msg.chat.id, message, sharedSendOptions);
     }
   });
 }

@@ -139,13 +139,63 @@ export class WoltApiClient {
     }
 
     /**
+     * @param {string} query
+     * @param {number} latitude
+     * @param {number} longitude
+     * @returns {Promise<SearchEverywhereResult?>}
+     */
+    async searchEverywhereAsync(query, latitude, longitude) {
+        logger.verbose('Searching for %s.', query);
+        try {
+            const payload = {
+                q: query,
+                lat: latitude,
+                lon: longitude,
+            };
+
+            const result = await this._sendRequestAsync('POST', '/pages/search', payload);
+            logger.debug('Search result: %o.', result);
+            return result;
+        } catch (e) {
+            logger.error(e);
+            return null;
+        }
+    }
+
+    /**
+     * @param {string} query
+     * @param {string} placeId
+     * @param {LanguageCode} language
+     * @returns {Promise<SearchInPlaceResult?>}
+     */
+    async searchInPlaceAsync(query, placeId, language) {
+        logger.verbose('Searching for %s in %s.', query, placeId);
+
+        try {
+            const url = `/venues/${placeId}/menu/items?`
+                + `unit_prices=true`
+                + `&show_weighted_items=true`
+                + `&language=${language}`
+                + `&q=${encodeURIComponent(query)}`;
+            logger.debug('Sending request to %s.', url);
+            const result = await this._sendRequestAsync('GET', url, null, 'v4');
+            logger.debug('Search result: %o.', result);
+            return result;
+        } catch (e) {
+            logger.error(e);
+            return null;
+        }
+    }
+
+    /**
      * @param {string} httpMethod
      * @param {string} relativeUrl
      * @param {Object} payload
+     * @param {string} apiVersion
      * @returns {Promise<Object>}
      * @private
      */
-    async _sendRequestAsync(httpMethod, relativeUrl, payload) {
+    async _sendRequestAsync(httpMethod, relativeUrl, payload, apiVersion = 'v1') {
         await this._authorizeAsync();
 
         const options = {
@@ -154,10 +204,10 @@ export class WoltApiClient {
                 'Authorization': `Bearer ${this._accessToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload),
+            body: payload ? JSON.stringify(payload) : null,
         }
 
-        const url = `https://restaurant-api.wolt.com/v1${relativeUrl}`;
+        const url = `https://restaurant-api.wolt.com/${apiVersion}${relativeUrl}`;
         logger.debug('Sending request to %s.', url);
         logger.debug('Body: %o.', options);
 
