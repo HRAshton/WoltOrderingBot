@@ -153,7 +153,7 @@ Data will be placed in the range `A1:B`. Will contain pairs of log message and c
 
 - `/cancel` - Cancel all the group orders.
 - `/list` - Show all lists (places and its items).
-- `/search` - Search for an item in all places.
+- `/s <item name>` - Search for an item in all places.
 - `(place alias)` - Create a group order for the place with the given alias.
 
 #### Order creation command format

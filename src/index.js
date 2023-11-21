@@ -93,7 +93,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     }
   });
 
-  bot.onText(/^\/search(.*)$/, async (msg, match) => {
+  bot.onText(/^\/s(.*)$/, async (msg, match) => {
     const searchQuery = (match && match[1])?.trim();
     logger.info('User %d requested search for %s.', msg.chat.id,);
 
