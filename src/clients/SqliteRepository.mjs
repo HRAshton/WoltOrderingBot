@@ -9,6 +9,7 @@ import { SQLITE_DATABASE_PATH } from '../lowLevelConfiguration.mjs';
 
 const logger = getLogger('SqliteRepository');
 
+/** @implements {IMainRepository} */
 export class SqliteRepository {
   /** @type {Database} */
   _db;
@@ -18,6 +19,11 @@ export class SqliteRepository {
     this.setRefreshTokenAsync = this.setRefreshTokenAsync.bind(this);
     this.registerOrderToDeleteAsync = this.registerOrderAsync.bind(this);
     this.deleteOrderAsync = this.deleteOrderAsync.bind(this);
+    this.getPlacesAsync = this.getPlacesAsync.bind(this);
+    this.getItemsAsync = this.getItemsAsync.bind(this);
+    this.getUsersAsync = this.getUsersAsync.bind(this);
+    this.getOrdersAsync = this.getOrdersAsync.bind(this);
+    this.refreshCache = this.refreshCache.bind(this);
     logger.verbose('SqliteRepository created.');
   }
 
@@ -98,6 +104,11 @@ export class SqliteRepository {
     logger.verbose('Order %s deleted.', orderId);
   }
 
+  /** @returns {Promise<void>} */
+  async refreshCache() {
+    // None of the data is cached, so nothing to do here.
+  }
+
   /** @private */
   async _initDatabaseAsync() {
     if (this._db) {
@@ -156,7 +167,7 @@ export class SqliteRepository {
                ('deliveryInfoStr', 'COPY delivery_info STRING FROM A WOLT REQUEST HERE'),
                ('telegramToken', 'COPY TELEGRAM TOKEN HERE'),
                ('ordersExpirationMinutes', '15')`);
-    
+
     logger.verbose('Migration complete.');
   }
 }

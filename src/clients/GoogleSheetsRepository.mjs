@@ -6,14 +6,16 @@
 import fetch from 'node-fetch';
 import { getLogger } from '../LogManager.mjs';
 import { GAS_DB_ENDPOINT } from '../lowLevelConfiguration.mjs';
+import { SimpleCache } from '../helpers/SimpleCache.mjs';
 
 const logger = getLogger('GoogleSheetsRepository');
 
 let initialized = false;
 
-/** @implements {MainRepository} */
+/** @implements {IMainRepository} */
 export class GoogleSheetsRepository {
   endpoint = GAS_DB_ENDPOINT || '';
+  cache = new SimpleCache();
 
   constructor() {
     if (initialized) {
@@ -34,12 +36,15 @@ export class GoogleSheetsRepository {
     this.setRefreshTokenAsync = this.setRefreshTokenAsync.bind(this);
     this.registerOrderAsync = this.registerOrderAsync.bind(this);
     this.deleteOrderAsync = this.deleteOrderAsync.bind(this);
+    this.refreshCache = this.refreshCache.bind(this);
     logger.verbose('GoogleSheetsRepository created.');
   }
 
   /** @returns {Promise<Settings>} */
   async getSettingsAsync() {
-    const result = await this._callDatabaseAsync('getSettings');
+    const result = await this.cache.getOrCreateAsync(
+      'getSettings',
+      async () => await this._callDatabaseAsync('getSettings'));
 
     logger.verbose('Returning settings: %o.', result);
     return result;
@@ -47,7 +52,9 @@ export class GoogleSheetsRepository {
 
   /** @returns {Promise<Place[]>} */
   async getPlacesAsync() {
-    const result = await this._callDatabaseAsync('getPlaces');
+    const result = await this.cache.getOrCreateAsync(
+      'getPlaces',
+      async () => await this._callDatabaseAsync('getPlaces'));
 
     logger.verbose('Returning places: %o.', result);
     return result;
@@ -55,7 +62,9 @@ export class GoogleSheetsRepository {
 
   /** @returns {Promise<Item[]>} */
   async getItemsAsync() {
-    const result = await this._callDatabaseAsync('getItems');
+    const result = await this.cache.getOrCreateAsync(
+      'getItems',
+      async () => await this._callDatabaseAsync('getItems'));
 
     logger.verbose('Returning items: %o.', result);
     return result;
@@ -63,7 +72,9 @@ export class GoogleSheetsRepository {
 
   /** @returns {Promise<User[]>} */
   async getUsersAsync() {
-    const result = await this._callDatabaseAsync('getUsers');
+    const result = await this.cache.getOrCreateAsync(
+      'getUsers',
+      async () => await this._callDatabaseAsync('getUsers'));
 
     logger.verbose('Returning users: %o.', result);
     return result;
@@ -83,6 +94,7 @@ export class GoogleSheetsRepository {
    */
   async setRefreshTokenAsync(woltRefreshToken) {
     await this._callDatabaseAsync('setRefreshToken', { woltRefreshToken });
+    this.cache.clear();
     logger.verbose('Refresh token updated.');
   }
 
@@ -103,6 +115,20 @@ export class GoogleSheetsRepository {
   async deleteOrderAsync(orderId) {
     await this._callDatabaseAsync('deleteOrder', { orderId });
     logger.verbose('Order %s deleted.', orderId);
+  }
+
+  /** @returns {Promise<void>} */
+  async refreshCache() {
+    this.cache.clear();
+    logger.verbose('Cache cleared.');
+
+    await Promise.all([
+      this.getSettingsAsync(),
+      this.getPlacesAsync(),
+      this.getItemsAsync(),
+      this.getUsersAsync(),
+    ]);
+    logger.verbose('Cache refreshed.');
   }
 
   /**

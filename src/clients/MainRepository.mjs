@@ -6,5 +6,5 @@
 import { GoogleSheetsRepository } from "./GoogleSheetsRepository.mjs";
 
 // Switch between GoogleSheetsRepository and SqliteRepository
-/** @type {MainRepository} */
+/** @type {IMainRepository} */
 export { GoogleSheetsRepository as MainRepository };

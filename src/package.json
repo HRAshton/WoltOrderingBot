@@ -16,8 +16,8 @@
   "author": "HRAshton",
   "license": "GPL-3.0",
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
     "node-fetch": "^3.3.2",
+    "node-telegram-bot-api": "^0.64.0",
     "winston": "^3.11.0"
   }
 }

@@ -7,7 +7,7 @@ import { WoltApiClient } from './clients/WoltApiClient.mjs';
 import { cleanupOrdersAsync } from './services/CleanupService.mjs';
 import { createOrderAndPrepareMessage } from './services/OrdersService.mjs';
 import { getListsAsync } from './services/ListsService.mjs';
-import { ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
+import { CACHE_REFRESH_INTERVAL_SECS, ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
 import { getLogger } from './LogManager.mjs';
 import { searchItemsEverywhereAsync } from './services/SearchService.mjs';
 
@@ -143,6 +143,8 @@ const runBotAsync = async (mainRepository) => {
 };
 
 const mainRepository = new MainRepository();
+await mainRepository.refreshCache();
 setInterval(() => updateRefreshTokenAsync(mainRepository), REFRESH_TOKENS_INTERVAL_SECS * 1000);
 setInterval(() => cleanupOrdersAsync(false, mainRepository), ORDERS_CLEANUP_INTERVAL_SECS * 1000);
+setInterval(() => mainRepository.refreshCache(), CACHE_REFRESH_INTERVAL_SECS * 1000);
 await runBotAsync(mainRepository);
