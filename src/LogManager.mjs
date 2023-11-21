@@ -25,7 +25,6 @@ const logConfiguration = {
         winston.format.timestamp({
             format: 'YYYY-MM-DD HH:mm:ss'
         }),
-        winston.format.colorize(),
         winston.format.splat(),
         winston.format.printf(({ message, timestamp, level, label }) => {
             return `${timestamp} (${label || 'NO_LABEL'}) [${level}] -> ${message}`;
