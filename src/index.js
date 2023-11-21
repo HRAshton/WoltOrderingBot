@@ -106,7 +106,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     const messageLines = await searchItemsEverywhereAsync(mainRepository, searchQuery);
     const messages = [];
     for (const line of messageLines) {
-      if (messages.length && messages[messages.length - 1].length + line.length < 9000) {
+      if (messages.length && messages[messages.length - 1].length + line.length < 4096) {
         messages[messages.length - 1] += '\n' + line;
       } else {
         messages.push(line);
