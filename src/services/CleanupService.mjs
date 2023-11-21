@@ -9,9 +9,9 @@ const logger = getLogger('CleanupService');
 
 /**
  * @param {boolean} forced
+ * @param {MainRepository} mainRepository
  */
-export async function cleanupOrdersAsync(forced) {
-    const mainRepository = new MainRepository();
+export async function cleanupOrdersAsync(forced, mainRepository) {
     const settings = await mainRepository.getSettingsAsync();
 
     const woltClient = new WoltApiClient(

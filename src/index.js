@@ -13,8 +13,11 @@ import { searchItemsEverywhereAsync } from './services/SearchService.mjs';
 
 const logger = getLogger('index.js');
 
-const updateRefreshTokenAsync = async () => {
-  const mainRepository = new MainRepository();
+/**
+ * @param {MainRepository} mainRepository
+ * @returns {Promise<void>}
+ */
+const updateRefreshTokenAsync = async (mainRepository) => {
   const config = await mainRepository.getSettingsAsync();
 
   const woltClient = new WoltApiClient(
@@ -60,7 +63,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
         return;
       }
 
-      await cleanupOrdersAsync(true);
+      await cleanupOrdersAsync(true, mainRepository);
 
       bot.sendMessage(msg.chat.id, `${orders.length} orders cancelled.`);
     } catch (e) {
@@ -119,9 +122,12 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
   });
 }
 
-const runBotAsync = async () => {
+/**
+ * @param {MainRepository} mainRepository
+ * @returns {Promise<void>}
+ */
+const runBotAsync = async (mainRepository) => {
   try {
-    const mainRepository = new MainRepository();
     const settings = await mainRepository.getSettingsAsync();
     const allowedUsers = await mainRepository.getUsersAsync();
 
@@ -136,6 +142,7 @@ const runBotAsync = async () => {
   }
 };
 
-setInterval(updateRefreshTokenAsync, REFRESH_TOKENS_INTERVAL_SECS * 1000);
-setInterval(cleanupOrdersAsync, ORDERS_CLEANUP_INTERVAL_SECS * 1000);
-await runBotAsync();
+const mainRepository = new MainRepository();
+setInterval(() => updateRefreshTokenAsync(mainRepository), REFRESH_TOKENS_INTERVAL_SECS * 1000);
+setInterval(() => cleanupOrdersAsync(false, mainRepository), ORDERS_CLEANUP_INTERVAL_SECS * 1000);
+await runBotAsync(mainRepository);

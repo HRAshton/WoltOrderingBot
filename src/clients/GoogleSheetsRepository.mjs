@@ -9,9 +9,23 @@ import { GAS_DB_ENDPOINT } from '../lowLevelConfiguration.mjs';
 
 const logger = getLogger('GoogleSheetsRepository');
 
+let initialized = false;
+
 /** @implements {MainRepository} */
 export class GoogleSheetsRepository {
+  endpoint = GAS_DB_ENDPOINT || '';
+
   constructor() {
+    if (initialized) {
+      throw new Error('GoogleSheetsRepository already initialized. Please reuse the instance.');
+    }
+
+    if (!this.endpoint) {
+      throw new Error('GAS_DB_ENDPOINT must be set.');
+    }
+
+    initialized = true;
+
     this.getSettingsAsync = this.getSettingsAsync.bind(this);
     this.getPlacesAsync = this.getPlacesAsync.bind(this);
     this.getItemsAsync = this.getItemsAsync.bind(this);
@@ -108,7 +122,7 @@ export class GoogleSheetsRepository {
 
     logger.debug('Calling Google Sheets API with options: %o.', options);
 
-    const response = await fetch(GAS_DB_ENDPOINT, options);
+    const response = await fetch(this.endpoint, options);
     const responseText = await response.text();
     logger.debug('Google Sheets API returned: %s.', responseText);
 
