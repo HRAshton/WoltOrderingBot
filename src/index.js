@@ -10,6 +10,7 @@ import { getListsAsync } from './services/ListsService.mjs';
 import { CACHE_REFRESH_INTERVAL_SECS, ORDERS_CLEANUP_INTERVAL_SECS, REFRESH_TOKENS_INTERVAL_SECS } from './lowLevelConfiguration.mjs';
 import { getLogger } from './LogManager.mjs';
 import { searchItemsEverywhereAsync } from './services/SearchService.mjs';
+import { splitArray } from './helpers/ArrayHelpers.mjs';
 
 const logger = getLogger('index.js');
 
@@ -33,10 +34,37 @@ const updateRefreshTokenAsync = async (mainRepository) => {
  * @returns {void}
  */
 const setupBot = (bot, allowedUsers, mainRepository) => {
-  /** @type {import('node-telegram-bot-api').SendMessageOptions} */
-  const sharedSendOptions = { disable_web_page_preview: true, parse_mode: 'Markdown' };
+  const buttons = {
+    lists: '📋 Lists',
+    cancel: '❌ Cancel all',
+  }
 
-  bot.onText(/^\/lists$/, async (msg, _) => {
+  /** @returns {Promise<import('node-telegram-bot-api').SendMessageOptions>} */
+  const sharedSendOptions = async () => {
+    const [places, settings] = await Promise.all([
+      mainRepository.getPlacesAsync(),
+      mainRepository.getSettingsAsync()
+    ]);
+    const orderedPlacesNames = places
+      .slice(0, settings.keyboardButtonRows * settings.keyboardButtonsForOrdersPerRow)
+      .map(place => place.fullName)
+      .filter((item, index, self) => self.indexOf(item) === index) // Remove duplicates.
+      .sort();
+    const chunks = splitArray(orderedPlacesNames, settings.keyboardButtonsForOrdersPerRow);
+
+    return ({
+      disable_web_page_preview: true,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        keyboard: [
+          ...chunks.map(places => places.map(place => ({ text: place }))),
+          [{ text: buttons.lists }, { text: buttons.cancel }],
+        ]
+      }
+    });
+  };
+
+  bot.onText(new RegExp(`^(\/lists|${buttons.lists})$`), async (msg, _) => {
     if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
       logger.warn('User is not allowed: %d.', msg.chat.id);
       return;
@@ -46,11 +74,11 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     const responses = await getListsAsync(mainRepository);
 
     for (const response of responses) {
-      bot.sendMessage(msg.chat.id, response, sharedSendOptions);
+      bot.sendMessage(msg.chat.id, response, await sharedSendOptions());
     }
   });
 
-  bot.onText(/^\/cancel$/, async (msg, _) => {
+  bot.onText(new RegExp(`^(\/cancel|${buttons.cancel})$`), async (msg, _) => {
     try {
       if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
         logger.warn('User is not allowed: %d.', msg.chat.id);
@@ -59,7 +87,7 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
 
       const orders = await mainRepository.getOrdersAsync();
       if (!orders) {
-        bot.sendMessage(msg.chat.id, 'No orders found.', sharedSendOptions);
+        bot.sendMessage(msg.chat.id, 'No orders found.', await sharedSendOptions());
         return;
       }
 
@@ -68,41 +96,22 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
       bot.sendMessage(msg.chat.id, `${orders.length} orders cancelled.`);
     } catch (e) {
       logger.error(e);
-      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
-    }
-  });
-
-  bot.onText(/^[^\/]+$/, async (msg, _) => {
-    try {
-      if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
-        logger.warn('User is not allowed: %d.', msg.chat.id);
-        return;
-      }
-
-      const { message, successful } = await createOrderAndPrepareMessage(
-        mainRepository,
-        allowedUsers,
-        msg.text?.toLowerCase() || '');
-
-      const usersToNotify = successful
-        ? allowedUsers
-        : allowedUsers.filter(user => user.telegramId === msg.chat.id);
-      for (const user of usersToNotify) {
-        bot.sendMessage(user.telegramId, message, sharedSendOptions);
-      }
-    } catch (e) {
-      logger.error('%o', e);
-      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, sharedSendOptions);
+      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, await sharedSendOptions());
     }
   });
 
   bot.onText(/^\/s(.*)$/, async (msg, match) => {
+    if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
+      logger.warn('User is not allowed: %d.', msg.chat.id);
+      return;
+    }
+
     const searchQuery = (match && match[1])?.trim();
     logger.info('User %d requested search for %s.', msg.chat.id,);
 
     if (!searchQuery || searchQuery.length < 3) {
       logger.warn('Request for search with invalid query: %s.', searchQuery);
-      bot.sendMessage(msg.chat.id, 'Please specify a search query.', sharedSendOptions);
+      bot.sendMessage(msg.chat.id, 'Please specify a search query.', await sharedSendOptions());
       return;
     }
 
@@ -117,7 +126,36 @@ const setupBot = (bot, allowedUsers, mainRepository) => {
     }
 
     for (const message of messages) {
-      await bot.sendMessage(msg.chat.id, message, sharedSendOptions);
+      await bot.sendMessage(msg.chat.id, message, await sharedSendOptions());
+    }
+  });
+
+  bot.onText(/^[^\/]+$/, async (msg, _) => {
+    const isDefaultButton = Object.values(buttons).some(button => button === msg.text);
+    if (isDefaultButton) {
+      return;
+    }
+
+    if (!allowedUsers.some(user => user.telegramId === msg.chat.id)) {
+      logger.warn('User is not allowed: %d.', msg.chat.id);
+      return;
+    }
+
+    try {
+      const { message, successful } = await createOrderAndPrepareMessage(
+        mainRepository,
+        allowedUsers,
+        msg.text?.toLowerCase() || '');
+
+      const usersToNotify = successful
+        ? allowedUsers
+        : allowedUsers.filter(user => user.telegramId === msg.chat.id);
+      for (const user of usersToNotify) {
+        bot.sendMessage(user.telegramId, message, await sharedSendOptions());
+      }
+    } catch (e) {
+      logger.error('%o', e);
+      bot.sendMessage(msg.chat.id, 'Unknown error: ' + e, await sharedSendOptions());
     }
   });
 }

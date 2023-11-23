@@ -25,7 +25,14 @@
 
 /**
  * Settings.
- * @typedef {{woltRefreshToken: string, deliveryInfoStr: string, telegramToken: string, ordersExpirationMinutes: number}} Settings
+ * @typedef {{
+ *  woltRefreshToken: string,
+ *  deliveryInfoStr: string,
+ *  telegramToken: string,
+ *  ordersExpirationMinutes: number,
+ *  keyboardButtonsForOrdersPerRow: number,
+ *  keyboardButtonRows: number,
+ * }} Settings
  */
 
 /**

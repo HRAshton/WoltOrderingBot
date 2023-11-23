@@ -20,16 +20,12 @@ export async function createOrderAndPrepareMessage(mainRepository, users, text) 
         mainRepository.getItemsAsync(),
     ]);
 
-    const tokens = text.split(' ');
-
-    const { place, errorMessage } = _findPlace(tokens, allPlaces);
-    if (!place) {
+    const { place, items, errorMessage } = _parseOrder(text, allPlaces, allItems, settings);
+    if (!place || !items || errorMessage) {
         if (!errorMessage) throw new Error('No error message.');
         logger.warn(errorMessage);
         return { message: errorMessage, successful: false };
     }
-
-    const items = _findItems(tokens, place, allItems);
 
     const woltClient = new WoltApiClient(
         settings.woltRefreshToken,
@@ -71,13 +67,42 @@ The order will be deleted in ${settings.ordersExpirationMinutes} minutes.
 }
 
 /**
+ * @param {string} text
+ * @param {Place[]} allPlaces
+ * @param {Item[]} allItems
+ * @param {Settings} settings
+ * @returns {{place?: Place, items?: {item: Item, count: number}[], errorMessage?: string}}
+ */
+function _parseOrder(text, allPlaces, allItems, settings) {
+    const { place: fullTextPlace } = _findPlace([text], allPlaces);
+    if (fullTextPlace) {
+        logger.debug('Place found in full text: %s.', fullTextPlace);
+        return { place: fullTextPlace, items: [] };
+    }
+
+    const tokens = text.split(' ');
+
+    const { place, errorMessage } = _findPlace(tokens, allPlaces);
+    if (!place) {
+        if (!errorMessage) throw new Error('No error message.');
+        logger.warn(errorMessage);
+        return { errorMessage };
+    }
+
+    const items = _findItems(tokens, place, allItems);
+
+    return { place, items };
+}
+
+/**
  * @param {string[]} tokens 
  * @param {Place[]} allPlaces 
  * @returns {{place?: Place, errorMessage?: string}} 
  */
 function _findPlace(tokens, allPlaces) {
     const places = allPlaces
-        .filter(place => tokens.includes(place.alias) || tokens.includes(place.fullName));
+        .filter(place => tokens.includes(place.alias.toLocaleLowerCase())
+            || tokens.includes(place.fullName.toLocaleLowerCase()));
 
     if (!places.length) {
         return { errorMessage: 'No places found.' };
